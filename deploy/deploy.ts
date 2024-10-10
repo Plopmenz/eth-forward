@@ -1,33 +1,17 @@
 import { Address, Deployer } from "../web3webdeploy/types";
-import { DeployCounterSettings, deployCounter } from "./counters/Counter";
-import {
-  DeployProxyCounterSettings,
-  deployProxyCounter,
-} from "./counters/ProxyCounter";
-import {
-  SetInitialCounterValueSettings,
-  setInitialCounterValue,
-} from "./counters/SetInitialCounterValue";
 
-export interface DeploymentSettings {
-  counterSettings: DeployCounterSettings;
-  proxyCounterSettings: Omit<DeployProxyCounterSettings, "counter">;
-  setInitialCounterValueSettings: Omit<
-    SetInitialCounterValueSettings,
-    "counter"
-  >;
+export interface EthForwardDeploymentSettings {
   forceRedeploy?: boolean;
 }
 
-export interface Deployment {
-  counter: Address;
-  proxyCounter: Address;
+export interface EthForwardDeployment {
+  ethForward: Address;
 }
 
 export async function deploy(
   deployer: Deployer,
-  settings?: DeploymentSettings
-): Promise<Deployment> {
+  settings?: EthForwardDeploymentSettings
+): Promise<EthForwardDeployment> {
   if (settings?.forceRedeploy !== undefined && !settings.forceRedeploy) {
     const existingDeployment = await deployer.loadDeployment({
       deploymentName: "V1.json",
@@ -37,24 +21,15 @@ export async function deploy(
     }
   }
 
-  const counter = await deployCounter(
-    deployer,
-    settings?.counterSettings ?? {}
-  );
-  const proxyCounter = await deployProxyCounter(deployer, {
-    ...(settings?.proxyCounterSettings ?? {}),
-    counter: counter,
-  });
-  await setInitialCounterValue(deployer, {
-    ...(settings?.setInitialCounterValueSettings ?? {
-      counterValue: BigInt(3),
-    }),
-    counter: counter,
-  });
+  const ethForward = await deployer
+    .deploy({
+      id: "EthFoward",
+      contract: "EthForward",
+    })
+    .then((deployment) => deployment.address);
 
   const deployment = {
-    counter: counter,
-    proxyCounter: proxyCounter,
+    ethForward: ethForward,
   };
   await deployer.saveDeployment({
     deploymentName: "V1.json",
